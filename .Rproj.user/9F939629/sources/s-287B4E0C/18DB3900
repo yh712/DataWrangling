@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1619817598899.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "18DB3900",
+    "lastKnownWriteTime" : 1619817962,
+    "last_content_update" : 1619817962688,
+    "path" : "~/Desktop/Rutgers/4th Semester/Data Wrangling/Final_Project/Stat597_final_project/test_rmarkdown.Rmd",
+    "project_path" : "test_rmarkdown.Rmd",
+    "properties" : {
+        "cursorPosition" : "4,3",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

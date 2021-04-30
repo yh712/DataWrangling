@@ -1,0 +1,3 @@
+"0","ggcorr(data = select(kc_house, -all_of(cat_variables)), size = 3, hjust = 0.75,"
+"0","       method = c(""pairwise.complete.obs"", ""pearson""),"
+"0","       label = TRUE, label_size = 4)"

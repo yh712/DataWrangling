@@ -1,0 +1,77 @@
+---
+title: "Homework1"
+author: "Yuhsiang Hong"
+date: "1/26/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Install the package "babynames"
+
+Import the dataset.
+
+```{r}
+library(babynames)
+head(babynames)
+```
+## Plot the number of male and female babies named Taylor *by year* 
+
+```{r}
+library(ggplot2)
+df <- babynames[babynames$name=='Taylor',]
+ggplot(data=df) + 
+  geom_line(mapping=aes(x=year, y=n, color=sex)) +
+  xlab('Year') + 
+  ylab('Number of babies') + 
+  ggtitle("Number of male and female babies named Taylor") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+### 1. Is a 16 year old named Quinn more likely to be a boy or a girl?
+
+For a 16 year old teenager in 2021, he or she must be born in 2005. Thus, I create a barplot of numbers of male and female babies named Quinn born in 2005.
+
+```{r}
+df1 <- babynames[babynames$year==2005 & babynames$name=='Quinn',]
+ggplot(data=df1, aes(x=sex, y=n)) + 
+  geom_bar(stat="identity") + 
+  ylab("Number of babies") + 
+  ggtitle("Number of babies named Quinn borin in 2005") + 
+  theme(plot.title = element_text(hjust = 0.5))
+```
+From above, we can see that a 16 year old person is more likely to be a male rather than a female because there were more male babies than female babies in 2005.
+
+### 2. Is a 2 year old named Quinn more likely to be a boy or a girl?
+
+A 2 year old baby in 2021 means that he or she was born in 2019. However, the dataset only has babies records before 2017. Thus, let's observe the trend of gender of babies named Quinn, especially in recent years.
+
+```{r}
+df2 <- babynames[babynames$name=='Quinn',]
+ggplot(data=df2) + 
+  geom_line(mapping=aes(x=year, y=n, color=sex)) +
+  xlab('Year') + 
+  ylab('Number of babies') + 
+  ggtitle("Number of male and female babies named Quinn") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+As we can see, there are more female babies named Quinn than male babies named Quinn. The steep red line in the plot indicates the significant growth of number of female babies named Quinn year by year. The trend is more noticeable after 2010. Therefore, I would say a 2 year old baby named Quinn is more likely to be a girl than a boy.
+
+### 3. What is your best guess as to how old a woman named Susan is?
+
+Before computing how many new born babies named Susan in each year, I assume that every person's life span is 100 year. Therefore, I only consider women who were born in or after 1921.
+
+```{r}
+df_susan <- babynames[babynames$name=='Susan' & babynames$year>=1921 & babynames$sex=='F',]
+target <- as.numeric(df_susan[df_susan$n == max(df_susan$n),1])
+ggplot(data=df_susan, mapping = aes(year, n)) + 
+  geom_bar(stat = "identity", width = 0.8) + 
+  ylab("Number of babies") + 
+  ggtitle("Number of female babies named Susan") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  geom_text(aes(label=ifelse(n==max(n), n, ''))) + 
+  scale_x_continuous(breaks =c(1921, 1940, 1960, 1980, 2000, max(df_susan$year), target))
+```
+From the above barplot, 1955 has the largest number (47397) of new born girl babies named Susan among all the years from 1921 to 2017. Hence, my best guest for the age of a woman named Susan is 66, which is computed by the value of (2021-1955).

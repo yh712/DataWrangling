@@ -1,0 +1,11 @@
+"0","# Import the data"
+"0","kc_house <- read_csv(""kc_house_data.csv"")"
+"2","Parsed with column specification:
+cols(
+  .default = col_double(),
+  date = [34mcol_datetime(format = """")[39m
+)
+"
+"2","See spec(...) for full column specifications.
+"
+"0","head(kc_house)"

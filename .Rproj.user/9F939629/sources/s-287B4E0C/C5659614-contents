@@ -1,0 +1,264 @@
+---
+title: "project"
+author: "Jiazhang Cai"
+date: "12/2/2019"
+output: pdf_document
+fontsize: 11pt
+geometry: margin=1in
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 5, fig.width = 9)
+```
+
+Load the data and summarize some basic characters of the dataset.  
+
+```{r}
+data = read.csv("~/Desktop/Curriculum/Regression & Time Series/Final Project/data1.csv")
+summary(data)
+```
+
+Distribution plots. Most variables appear normally distributed. Upon visual inspection, there are some outliers. These will be removed if they are found to be influential observation in the multivariate analysis.  
+
+```{r}
+par(mfrow = c(2, 2))
+hist(data$age, main = NULL, ylab = NULL)
+hist(data$bedrooms, main = NULL, ylab = NULL)
+hist(data$bathrooms, main = NULL, ylab = NULL)
+hist(data$price, main = NULL, ylab = NULL)
+```
+
+```{r}
+par(mfrow = c(2, 2))
+hist(data$sqft_living, main = NULL, ylab = NULL)
+hist(data$sqft_lot, main = NULL, ylab = NULL)
+hist(data$floors, main = NULL, ylab = NULL)
+hist(data$sqft_above, main = NULL, ylab = NULL)
+```
+
+```{r}
+par(mfrow = c(2, 2))
+hist(data$view, main = NULL, ylab = NULL)
+hist(data$condition, main = NULL, ylab = NULL)
+hist(data$grade, main = NULL, ylab = NULL)
+hist(data$sqft_above, main = NULL, ylab = NULL)
+```
+
+```{r}
+par(mfrow = c(2, 2))
+hist(data$sqft_basement, main = NULL, ylab = NULL)
+hist(data$sqft_living15, main = NULL, ylab = NULL)
+hist(data$sqft_lot15, main = NULL, ylab = NULL)
+```
+
+Identify linear relationships with between response and category predictors.   
+
+```{r}
+library(ggplot2)
+library(gridExtra)
+p1 = ggplot(data, aes(x = factor(bedrooms), y = price)) + 
+     geom_boxplot(color = "black") + 
+     geom_smooth(method = "lm", se = TRUE, aes(group = 1)) + 
+     stat_summary(fun.y = mean, color = "red", geom = "point")
+p2 = ggplot(data, aes(x = factor(bathrooms), y = price)) + 
+     geom_boxplot(color = "black") + 
+     geom_smooth(method = "lm", se = TRUE, aes(group = 1)) + 
+     stat_summary(fun.y = mean, color = "red", geom = "point")
+p3 = ggplot(data, aes(x = factor(floors), y = price)) + 
+     geom_boxplot(color = "black") + 
+     geom_smooth(method = "lm", se = TRUE, aes(group = 1)) + 
+     stat_summary(fun.y = mean, color = "red", geom = "point")
+p4 = ggplot(data, aes(x = factor(waterfront), y = price)) + 
+     geom_boxplot(color = "black") + 
+     geom_smooth(method = "lm", se = TRUE, aes(group = 1)) + 
+     stat_summary(fun.y = mean, color = "red", geom = "point")
+grid.arrange(p1, p2, p3, p4)
+```
+
+```{r}
+p5 = ggplot(data, aes(x = factor(view), y = price)) + 
+     geom_boxplot(color = "black") + 
+     geom_smooth(method = "lm", se = TRUE, aes(group = 1)) + 
+     stat_summary(fun.y = mean, color = "red", geom = "point")
+p6 = ggplot(data, aes(x = factor(condition), y = price)) + 
+     geom_boxplot(color = "black") + 
+     geom_smooth(method = "lm", se = TRUE, aes(group = 1)) + 
+     stat_summary(fun.y = mean, color = "red", geom = "point")
+p7 = ggplot(data, aes(x = factor(grade), y = price)) + 
+     geom_boxplot(color = "black") + 
+     geom_smooth(method = "lm", se = TRUE, aes(group = 1)) + 
+     stat_summary(fun.y = mean, color = "red", geom = "point")
+grid.arrange(p5, p6, p7)
+```
+
+Construct the full model.  
+
+```{r}
+model0 = lm(price ~. , data)
+summary(model0)
+```
+
+Check residuals - constant error assumption is violated.   
+
+```{r}
+plot(model0$fitted.values, residuals(model0), xlab = "Fitted Values", ylab = "Residuals")
+abline(h = 0)
+```
+
+Identify a transformation using BoxCox. Because the nearest integer is 0, so transform the response price_per_sqft_above to log(price_per_sqft_above).   
+
+```{r}
+library(MASS)
+boxcox(model0, lambda = seq(-1, 2, 0.1), plotit = TRUE)
+```
+
+Normality assumption
+
+Check residuals - variance appear normal. The result shows it has a heavy tail, so there must be some methods to be implemented for this case.  
+
+```{r}
+qqnorm(residuals(model0))
+qqline(residuals(model0))
+```
+
+Construct the full model again with log(price_per_sqft_above) as response.   
+
+```{r}
+model1 = lm(log(price) ~. , data)
+summary(model1)
+```
+
+Check residuals - variance appear normal. It's much better than before but still has a heavy tail.  
+
+```{r}
+qqnorm(residuals(model1))
+qqline(residuals(model1))
+```
+
+```{r}
+hist(residuals(model0), xlab = NULL, main = "Histogram of residuals")
+```
+
+Variance inflation factor.  
+
+```{r}
+library(corrplot)
+corrplot(cor(data), order = "hclust", addrect = 2, tl.col = "black")
+```
+
+```{r}
+library(faraway)
+vif(model1)
+```
+
+Remove sqft_lot15 because VIF = 10.43 > 10. sqft_lot15 is correlated with sqft_above, grade and bathrooms. Construct the full model again without sqft_lot15   
+
+```{r}
+data_1 = data[, -15]
+model2 = lm(log(price) ~. , data_1)
+vif(model2)
+```
+
+Remove sqft_living15
+
+```{r}
+data_2 = data_1[, -14]
+model3 = lm(log(price) ~. , data_2)
+vif(model3)
+```
+
+Remove sqft_basement
+
+```{r}
+data_3 = data_2[, -13]
+model4 = lm(log(price) ~. , data_3)
+vif(model4)
+```
+
+Identify influential observations(Cook's D) - there appears to be no Cook's D value above 1. Instead, we will remove all the observation that its Cook's D larger than 4/(the number of the observations).
+
+```{r}
+cook = cooks.distance(model4)
+halfnorm(cook, 1, ylab = "Cook's distance")
+```
+
+Create new model.
+
+```{r}
+data_4 = subset(data_3, cook < 4/nrow(data_3))
+n = nrow(data_4)
+out.null = lm(log(price) ~ 1, data_4)
+out.full = lm(log(price) ~. , data_4)
+out.middle = lm(log(price) ~ age + sqft_living + condition + view, data_4)
+```
+
+Perform forward stepwise, backward stepwise and hybrid stepwise model selection. Compare them and choose the best model. As a conclusion, the three methods have the same output.
+
+sqft_lot is dropped by three model selection.
+
+```{r}
+out.forward = step(out.null, scope = list(lower = ~1, upper = out.full), 
+                   k = log(n), direction = "forward", trace = FALSE) 
+summary(out.forward) 
+```
+
+```{r}
+out.backward = step(out.full, scope = list(lower = ~1, upper = out.full), 
+                   k = log(n), direction = "backward", trace = FALSE)
+summary(out.backward)
+```
+
+```{r}
+out.hybrid = step(out.middle, scope = list(lower = ~1, upper = out.full), 
+                   k = log(n), direction = "both", trace = FALSE)
+summary(out.hybrid)
+```
+
+Check residuals - constant error.
+
+```{r}
+plot(out.forward$fitted.values, residuals(out.forward), xlab = "Fitted Values", ylab = "Residuals")
+abline(h = 0)
+```
+
+Check residuals - variances appear normal and have a light tail.
+
+```{r}
+qqnorm(residuals(out.forward))
+qqline(residuals(out.forward))
+```
+
+```{r}
+hist(residuals(out.forward), xlab = NULL, main = "Histogram of residuals")
+```
+
+Split the data into training set and testing set.
+
+```{r}
+data_5 = data_4[, -6]
+training = sample(nrow(data_5), 0.8 * nrow(data_5), replace = FALSE)
+data_training = data_5[training,]
+data_testing = data_5[-training,]
+model_training = lm(log(price) ~ ., data_training)
+summary(model_training)
+```
+
+```{r}
+set.seed(1)
+x = predict(model_training, data_testing)
+y = log(data_testing$price)
+plot(x, y-x)
+abline(h = 0)
+```
+
+```{r}
+qqnorm(y - x)
+qqline(y - x)
+```
+
+```{r}
+hist(y - x)
+```
+
+
+

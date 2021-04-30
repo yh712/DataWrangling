@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1619734604352.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "C5659614",
+    "lastKnownWriteTime" : 1575431994,
+    "last_content_update" : 1619734700552,
+    "path" : "~/Desktop/Rutgers/1st Semester/Regression _ Time Series/Final Project/final_project.Rmd",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "53,0",
+        "last_setup_crc32" : "287B4E0C1961f445",
+        "scrollLine" : "38"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

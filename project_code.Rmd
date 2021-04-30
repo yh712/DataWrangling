@@ -16,6 +16,9 @@ The purpose of this project is to build a regression model that can predict the 
 ```{r}
 library(tidyverse)
 library(ggmap)
+library(gridExtra)
+library(corrplot)
+library(GGally)
 ```
 
 ## Data Cleaning
@@ -62,17 +65,60 @@ Since there are only two missing values, I will remove these two observations wi
 kc_house <- na.omit(kc_house)
 ```
 
+Handle variables with regard to the location of the house: lat, long, zipcode.
+
+Visualize the house price across different regions in the county.
+
+```{r}
+# 
+p1 <- qmplot(long, lat, maptype = "watercolor", color = log(price), data = kc_house, 
+       main = "Scaled House Price in King County") + 
+  theme(plot.title = element_text(size = 12)) + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  guides(color = FALSE) +
+  scale_colour_viridis_c()
+
+p2 <- qmplot(long, lat, maptype = "watercolor", color = zipcode, data = kc_house, 
+       main = "Zipcode in King County") + 
+  theme(plot.title = element_text(size = 12)) + 
+  theme(plot.title = element_text(hjust = 0.5)) +  
+  guides(color = FALSE)
+
+grid.arrange(p1, p2, ncol = 2)
+```
+
+As we can see, zipcode shows its effect on the house price. Since it is difficult to put latitude and longitude in the linear regression model in order to present some statistical meanings, I will remove latitude and longitude from the data frame and only keep zipcode as the location-wise variable.
+
+```{r}
+kc_house <- select(kc_house, -long, - lat)
+head(kc_house)
+```
+
 ## Data Exploratory
 
-```{r}
-
-```
+1. Examine relationships between the house price and category variables.   
 
 ```{r}
-qmplot(long, lat, maptype = "watercolor", color = log(price),
-  data = kc_house) + guides(color = FALSE) +
-  scale_colour_viridis_c()
+cat_variables <- c("waterfront", "view", "renovated", "basement", "zipcode")
+for (i in 1:4) {
+  plt <- ggplot(kc_house, aes(x = get(cat_variables[i]), y = price)) + 
+    geom_boxplot(color = "black") + 
+    geom_smooth(method = "lm", se = TRUE, aes(group = 1)) + 
+    stat_summary(fun = mean, color = "red", geom = "point") + 
+    xlab(cat_variables[i])
+  assign(paste("p", i, sep = ""), plt)
+}
+grid.arrange(p1, p2, p3, p4)
 ```
 
+All of the categorical variables seem to have linear relationships with the house price.
+
+2. Examine relationships between the house price and continuous variables and the relationships between two different continuous predictors.   
+
+```{r}
+ggcorr(data = select(kc_house, -all_of(cat_variables)), size = 3, hjust = 0.75,
+       method = c("pairwise.complete.obs", "pearson"),
+       label = TRUE, label_size = 4)
+```
 
 

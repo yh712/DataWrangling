@@ -1,0 +1,4 @@
+"0","data = read.csv(""~/Desktop/Curriculum/Regression & Time Series/Final Project/data1.csv"")"
+"2","cannot open file '/Users/seanhong/Desktop/Curriculum/Regression & Time Series/Final Project/data1.csv': No such file or directory"
+"2","Error in file(file, ""rt"") : cannot open the connection
+"
