@@ -1,124 +1,317 @@
 ---
 title: "King County House Price"
 author: "Yuhsiang Hong"
-date: "4/29/2021"
-output: html_document
+output:
+  github_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
-## Objective
+## Introduction
 
-The purpose of this project is to build a regression model that can predict the house price based on some features of the house.
+It has been roughly one year when the pandemic put the housing market on hold for several months last spring. But the real estate market bounced back quickly and has been booming since then. More existing homes were sold in 2020 than in any year since 2006. Therefore, the purpose of this project is to build a regression model to understand the relationship between the house price and some significant features of the house.
 
-```{r}
+I believe that the project could be very useful. For people who plan to buy a house, they can get the expected house price based on the features of the house. For real estate companies, they can determine what the house price is and raise their profits by understanding what kinds of features affect the house price.
+
+This course is mainly about Data Wrangling, so in this project, I will focus on Data Processing and Data Exploratory. In these parts, I am going implement some of the techniques and packages that has been utilized in the assignments and during the lectures. However, there will be model fitting at the end of the project so that we can have a deeper insight of the relationship between the house price and other features.
+
+## Overview of the Dataset
+
+The dataset I use is from Kaggle. The data contains the houses that were sold from May 2014 to May 2015. Total number of observations is over 20 thousand. There are total 21 different variables in the dataset. It includes house prices of King County in Washington state, which will be the dependent variable in the regression model. Other variables which will be the predictors in the regression model are some features of the house such as numbers of bathrooms, square footage of interior living space, the year of the house initially built, and so on. 
+(For more details, go check https://www.kaggle.com/harlfoxem/housesalesprediction)
+
+```{r message=FALSE, warning=FALSE}
 library(tidyverse)
 library(ggmap)
 library(gridExtra)
 library(corrplot)
 library(GGally)
+library(broom)
+library(caret)
+library(glmnet)
 ```
 
-## Data Cleaning
+## Data Preparation
 
-```{r}
-# Import the data
+Check if there is any the missing value.
+
+```{r Check Missing Data, message = FALSE}
+# Import the dataset
 kc_house <- read_csv("kc_house_data.csv")
-head(kc_house)
-summary(kc_house)
-```
 
-Since "id" is meaningless to house price, it will be removed. There are several variables that can be modified or merged to more meaningful new variables:
-
-1. "age" will be computed by "date" minus "yr_built" to represent how many years that the house had been built until the year it was sold.
-
-2. There are a lot of houses that have never been renovated, so "yr_renovated" will be converted to a binary variable, "renovated", showing whether this house had been renovated before it was sold.
-
-3. There are a lot of houses without basement as we can see from the summary. Thus, I will modify the "sqft_basement" to a binary variable, "basement", indicating if the house has the basement.
-
-4. Since all the data are from a county, the changes of longtitude and lattitude are very small. Moreover, the dataset contains zipcode, which is sufficient to reflect the relationship between the house price and the location. Therefore, I will remove these two variables.
-
-For zipcode, waterfront and view, I will change them into factorial variables.
-
-```{r}
-kc_house <- kc_house %>% 
-  mutate(age = as.numeric(format(date, format="%Y")) - yr_built) %>% 
-  mutate(renovated = as.factor(as.numeric(yr_renovated != 0))) %>% 
-  mutate(basement = as.factor(as.numeric(sqft_basement != 0))) %>% 
-  mutate(zipcode = as.factor(zipcode)) %>% 
-  mutate(waterfront = as.factor(waterfront)) %>% 
-  mutate(view = as.factor(view)) %>% 
-  select(-id, -date, -sqft_basement, -yr_built, -yr_renovated)
-```
-
-Handle missing values.
-
-```{r}
+# Check if there are any missing values
 sapply(kc_house, function(x) sum(is.na(x)))
 ```
 
-Since there are only two missing values, I will remove these two observations with missing values.
+Since there are only two observations that have missing values, I will just remove both of them.
 
 ```{r}
+# Remove observations with NA values
 kc_house <- na.omit(kc_house)
 ```
 
-Handle variables with regard to the location of the house: lat, long, zipcode.
+Implement linear regression model on the whole dataset to get the overview of the further analysis.
 
-Visualize the house price across different regions in the county.
-
-```{r}
-# 
-p1 <- qmplot(long, lat, maptype = "watercolor", color = log(price), data = kc_house, 
-       main = "Scaled House Price in King County") + 
-  theme(plot.title = element_text(size = 12)) + 
-  theme(plot.title = element_text(hjust = 0.5)) + 
-  guides(color = FALSE) +
-  scale_colour_viridis_c()
-
-p2 <- qmplot(long, lat, maptype = "watercolor", color = zipcode, data = kc_house, 
-       main = "Zipcode in King County") + 
-  theme(plot.title = element_text(size = 12)) + 
-  theme(plot.title = element_text(hjust = 0.5)) +  
-  guides(color = FALSE)
-
-grid.arrange(p1, p2, ncol = 2)
+```{r message=FALSE, warning=FALSE}
+# Fit linear Regression on the train data
+raw_mod <- lm(price ~ ., data = kc_house)
+glance(raw_mod)
 ```
 
-As we can see, zipcode shows its effect on the house price. Since it is difficult to put latitude and longitude in the linear regression model in order to present some statistical meanings, I will remove latitude and longitude from the data frame and only keep zipcode as the location-wise variable.
+The r.squared right now is `r as.numeric(glance(raw_mod)$r.squared)`.
+
+## Data Cleaning
+
+Before fitting the final model, I need to do some data cleaning and organizing in order to make the model more meaningful and perform better.
+
+Since `id` is meaningless to house price, it will be removed. There are several variables that should be converted to categorical types:
+
+* `waterfront` is a boolean, indicating if the house has a view to a waterfront.
+* `view` indicates how good the view of the property is. As it only has 4 values, this feature can be factorized.  
+* `condition` is a score from 1 to 5, indicating the state of the house.  
+* `grade` is another score, with 11 levels (3 ~ 13).
+* `zipcode` is a cluster-like category of the house location.
+* Since I intend to make the model more general, I will create a new variable, `age`, representing how many years the house had been built until it was sold. It is computed by the year of `date` minus `yr_built`. Moreover, `date` will be removed since I am more interested in the age of the house instead of the date it was sold.
 
 ```{r}
-kc_house <- select(kc_house, -long, - lat)
-head(kc_house)
+tidy_data <- kc_house %>% 
+  mutate(waterfront = as.factor(waterfront)) %>% 
+  mutate(view = as.factor(view)) %>% 
+  mutate(condition = as.factor(condition)) %>% 
+  mutate(grade = as.factor(grade)) %>%
+  mutate(age = as.numeric(format(date, format="%Y")) - yr_built) %>%
+  mutate(zipcode = as.factor(zipcode)) %>% 
+  select(-id, -date)
+
+head(tidy_data, 5)
 ```
 
 ## Data Exploratory
 
-1. Examine relationships between the house price and category variables.   
+**1. Dependent Variable**
+
+Our target is `price`, so let's check its distribution. In Plot 1, the house price is highly right-skewed, indicating that with log transformation, its distribution can be more normal as we can see in Plot 2.
 
 ```{r}
-cat_variables <- c("waterfront", "view", "renovated", "basement", "zipcode")
-for (i in 1:4) {
-  plt <- ggplot(kc_house, aes(x = get(cat_variables[i]), y = price)) + 
-    geom_boxplot(color = "black") + 
-    geom_smooth(method = "lm", se = TRUE, aes(group = 1)) + 
-    stat_summary(fun = mean, color = "red", geom = "point") + 
-    xlab(cat_variables[i])
-  assign(paste("p", i, sep = ""), plt)
-}
-grid.arrange(p1, p2, p3, p4)
+p1 <- ggplot(tidy_data, aes(x = price)) +
+  geom_density(fill = "darkgreen") + 
+  labs(title = "Plot 1: Distribution of House Price") + 
+  theme(plot.title = element_text(hjust = 0.5))
+p2 <- ggplot(tidy_data, aes(x = log(price))) +
+  geom_density(fill = "darkgreen") + 
+  labs(title = "Plot 2: Distribution of Log House Price") + 
+  theme(plot.title = element_text(hjust = 0.5))
+grid.arrange(p1, p2, nrow=2)
 ```
 
-All of the categorical variables seem to have linear relationships with the house price.
+These expensive houses cannot be removed from the dataset, as they are not anomalies but examples of the luxury market in the region. By transforming the data with a logarithm to base 10, it is easy to rebalance the dataset. This transformation could be used later to try to improve our models’ performance.
 
-2. Examine relationships between the house price and continuous variables and the relationships between two different continuous predictors.   
+**2. Categorical Features**
 
-```{r}
-ggcorr(data = select(kc_house, -all_of(cat_variables)), size = 3, hjust = 0.75,
+```{r message=FALSE, out.width=c('50%', '50%'), fig.show='hold'}
+cat_features <- names(tidy_data)[sapply(tidy_data, is.factor)]
+for (i in 1:(length(cat_features) - 1)) {
+  p1 <- tidy_data %>% 
+    group_by(get(cat_features[i])) %>% 
+    summarize(count = n()) %>% 
+    mutate(percent = count/sum(count)) %>% 
+    ggplot(aes(x = `get(cat_features[i])`, y = count)) +
+    geom_col(color = 'lightblue', fill = 'lightblue') + 
+    xlab("") +
+    geom_text(aes(label = paste0(round(100 * percent, 1), "%")), 
+              position = position_stack(vjust = 0.5), 
+              size = 4) + 
+  labs(title = paste("Distribution of", cat_features[i])) + 
+  theme(plot.title = element_text(hjust = 0.5))
+  p2 <- ggplot(tidy_data, aes(x = get(cat_features[i]), y = price)) + 
+    geom_boxplot(color = "black") + 
+    stat_summary(fun = mean, color = "red", geom = "point") + 
+    xlab(cat_features[i])
+  grid.arrange(p1, p2, nrow = 2)
+}
+```
+```{r message=FALSE}
+# Since there are too many zipcodes, I only show top 15 zipcodes that have the most houses
+p1 <- tidy_data %>% 
+  group_by(zipcode) %>% 
+  summarize(count = n()) %>% 
+  arrange(-count) %>% 
+  mutate(rank = min_rank(-count)) %>% 
+  mutate(percent = count/sum(count)) %>% 
+  filter(rank <= 15) %>%
+  ggplot(aes(x = zipcode, y = count)) +
+  geom_col(color = 'lightblue', fill = 'lightblue') + 
+  xlab("zipcode") +
+  geom_text(aes(label = paste0(round(100 * percent, 1), "%")), 
+            position = position_stack(vjust = 0.75), 
+            size = 4) +
+  labs(title = "Distribution of Top 15 Zipcode with the Most Houses") + 
+  theme(plot.title = element_text(hjust = 0.5, size = 8)) +
+  coord_flip()
+  
+p2 <- tidy_data %>% 
+  group_by(zipcode) %>% 
+  summarize(count = n()) %>% 
+  mutate(rank = min_rank(-count)) %>% 
+  mutate(percent = count/sum(count)) %>% 
+  ungroup() %>% 
+  right_join(tidy_data) %>% 
+  filter(rank <= 15) %>%
+  ggplot(aes(x = zipcode, y = price)) + 
+  geom_boxplot(color = "black") + 
+  stat_summary(fun = mean, color = "red", geom = "point") + 
+  xlab("") + 
+  labs(title = "Distribution of Top 15 Zipcode with the Most Houses") + 
+  theme(plot.title = element_text(hjust = 0.5, size = 8)) +
+  coord_flip()
+grid.arrange(p1, p2, ncol = 2)
+```
+
+From the above plots, there are some interesting observations:
+
+* Majority of the houses don't have `waterfront`. For houses with `waterfront`, they are normally more expensive than houses without `waterfront`.
+* Most of houses have really bad views, which is over 90%, but the house price increases when the score of house' view increases, which makes sense.
+* Most of the houses in the region are in an average condition 3, with 26% of the houses being in a great condition 4, and 8% being in an exceptional condition 5. The house price does increase as the condition becomes better. However, the change isn't significant.
+* `grade` distribution is similar to `condition` distribution. Its relationship with `price` seems exponential, so if log transformation on `price` is used, we can expect their relationship would be linear.
+* From top 15 `zipcode` containing the most houses, we can see that there is no specific area which has the most houses. `price` is fluctuated among these 15 houses and for more information of their relationship such as which area might have higher house prices, it still need further investigation.
+
+**3. Numerical Features**
+
+```{r Correlation Graph}
+ggcorr(data = select(tidy_data, -all_of(cat_features)), size = 2, hjust = 0.75,
        method = c("pairwise.complete.obs", "pearson"),
        label = TRUE, label_size = 4)
 ```
 
+There are some interesting things in the correlation plot:
+
+* the sqft_ features are highly correlated to each others, as `sqft_living` = `sqft_above` + `sqft_basement.` Therefore, I will examine the distribution of `sqft_basement` later to check how many houses actuallly have basements.
+* If the house is big, its neighbor houses are usually big, as we can discover this correlation from `sqft_living` and `sqft_living15` or `sqft_lot` and `sqft_lot15`.
+* `bathrooms` and `bedrooms` have high positive correlation with `sqft_living`, which is expected since more bedrooms and bathrooms in the house requires more space.
+
+Let's examine some of the numeric features that I didn't get much information from the above graph: `lat`, `long`, `yr_built`, `yr_renovated`, `age`, `floors`.
+
+```{r out.width=c('50%', '50%'), fig.show='hold'}
+features <- c("lat", "long", 'yr_built', 'yr_renovated', 'age', "floors", "sqft_basement")
+for (i in 1:(length(features))) {
+  p1 <- tidy_data %>% 
+    ggplot(aes(x = get(features[i]))) +
+    geom_density(fill = "lightblue") + 
+    xlab("") + 
+    labs(title = paste("Distribution of", features[i])) + 
+    theme(plot.title = element_text(hjust = 0.5))
+  p2 <- ggplot(tidy_data, aes(x = get(features[i]), y = price)) + 
+    geom_point(color = "lightblue") + 
+    xlab(features[i])
+  grid.arrange(p1, p2, nrow = 2)
+}
+
+# Count how many houses don't have basements
+no_basement_ratio <- sum(as.numeric(tidy_data$sqft_basement == 0)) / nrow(tidy_data)
+```
+
+From the above plots,
+
+* `lat` and `long` distributions suggest a higher number of houses in the North-West of the region. I will use ggmap to show this phenomenon in the below map graph.
+* Looking at the distribution of the feature `yr_built`, we can observe a steady increase of the number of houses since the early years of the 20th century. This trend can certainly be related to the population growth and the urban development in the region over the years.
+* From `yr_renovated`, we can see that there are certain number of houses renovated during late 20th century to early 21st century However, most of the houses have never been renovated. Due to this reason, I will create a new boolean feature, `renovated`, representing whether the house has been renovated or not.
+* `age` and doesn't show some significant relationship with `price`, which is interesting because I thought new houses might have higher prices.
+* Most of the houses have no more than two `floors`.
+* Since the percentage of houses without basements is `r no_basement_ratio`, meaning majority of houses don't have basements, I will create a new variable, `basement`, indicating whether the house has a basement or not. Moreover, `sqft_basement` will be removed since it's a linear combination of `sqft_living` and `sqft_above`.
+
+```{r message=FALSE, warning=FALSE}
+qmplot(long, lat, maptype = "terrain", color = log(price), 
+             source = "stamen", data = kc_house) +
+  scale_colour_viridis_c()
+```
+
+As we can see from the above map, northwest area has the lighter color, indicating that this area in general has higher house prices.
+
+```{r}
+# Add new variables to tidy_data: renovated, basement 
+tidy_data <- tidy_data %>% 
+  mutate(renovated = as.factor(as.numeric(yr_renovated != 0))) %>% 
+  mutate(basement = as.factor(as.numeric(sqft_basement != 0))) %>% 
+  select(-sqft_basement)
+
+# All the features of the final model
+features <- names(tidy_data %>% select(-price))
+```
+
+All the remaining and new features in the tidy dataset: 
+`r features`.
+
+## Model Fitting
+
+**1. Final model: dependent variable = `price`**
+
+```{r}
+final_mod <- lm(price ~., data = tidy_data)
+glance(final_mod)
+improve_rate <- 
+  ( as.numeric(glance(final_mod)$r.squared) - as.numeric(glance(raw_mod)$r.squared) )  / as.numeric(glance(raw_mod)$r.squared)
+```
+
+As we can see from the above, the final model has a higher r.squared value than the raw model. The improvemnt rate on r.squared is `r improve_rate*100`%.
+
+**2. Final log model: dependent variable = `log(price)`**
+
+```{r Result of the final log model}
+final_log_mod <- lm(log(price) ~., data = tidy_data)
+glance(final_log_mod)
+improve_rate_log <- 
+  ( as.numeric(glance(final_log_mod)$r.squared) - as.numeric(glance(raw_mod)$r.squared) )  / as.numeric(glance(raw_mod)$r.squared)
+```
+
+As we can see from the above, the final log model has a higher r.squared value than the raw model. The improvemnt rate on r.squared is `r improve_rate_log*100`%. Moreover, it also outperforms the final model, indicating that using `log(price)` as the target is more suitable for linear regression model.
+
+## Stepwise Model Selection
+
+Since there are too many variables in the dataset, I will use stepwise model selection to find out if there is smaller model that can also predict the house price well enough. (BIC is used for model selection.)
+
+**1. Forward stepwise model selection**
+
+```{r}
+null_mod = lm(log(price) ~ 1, tidy_data)
+full_mod = lm(log(price) ~. , tidy_data)
+forward_mod = step(null_mod, scope = list(lower = ~1, upper = full_mod), 
+                   k = log(nrow(tidy_data)), direction = "forward", trace = FALSE) 
+glance(forward_mod)
+```
+
+```{r}
+diff <- setdiff(tidy(final_mod)$term, tidy(forward_mod)$term)
+```
+
+Features that are removed from the forward stepwise model: `r diff`.
+
+**2. Backward stepwise model selection**
+
+```{r}
+backward_mod = step(full_mod, scope = list(lower = ~1, upper = full_mod), 
+                   k = log(nrow(tidy_data)), direction = "backward", trace = FALSE)
+glance(backward_mod)
+```
+
+```{r}
+diff <- setdiff(tidy(final_mod)$term, tidy(backward_mod)$term)
+```
+
+Features that are removed from the backward stepwise model: `r diff`.
+
+Some observations from model selections:
+
+* After removing `r diff` from the model, both new stepwise models still maintain the same r squared as the final log model. 
+* Both model remove `r diff`, indicating that these features are less important than others.
+
+## Conclusion & Improvement
+
+1. The regression model improves a lot when some features are converted into categorical types.
+2. In real world data, some variables such as prices often needs to be scaled in order to fit the model better.
+3. By adding new variables, the model can be more meaningful even though the performance doesn’t show some significant improvement.
+4. Proper Data Wrangling techniques can definitely help the model to obtain greater results.
+5. Variables like `zipcode` could be implemented some clustering algorithms to obtain more meaningful information of their distributions and relationships with the house price.
 

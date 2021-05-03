@@ -1,8 +1,0 @@
-"0","kc_house <- kc_house %>% "
-"0","  mutate(age = as.numeric(format(date, format=""%Y"")) - yr_built) %>% "
-"0","  mutate(renovated = as.factor(as.numeric(yr_renovated != 0))) %>% "
-"0","  mutate(basement = as.factor(as.numeric(sqft_basement != 0))) %>% "
-"0","  mutate(zipcode = as.factor(zipcode)) %>% "
-"0","  mutate(waterfront = as.factor(waterfront)) %>% "
-"0","  mutate(view = as.factor(view)) %>% "
-"0","  select(-id, -date, -sqft_basement, -yr_built, -yr_renovated)"
