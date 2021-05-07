@@ -21,7 +21,7 @@ This course is mainly about Data Wrangling, so in this project, I will focus on 
 ## Dataset
 
 The dataset I use is from Kaggle. The data contains the houses that were sold from May 2014 to May 2015. Total number of observations is over 20 thousand. There are total 21 different variables in the dataset. It includes house prices of King County in Washington state, which will be the dependent variable in the regression model. Other variables which will be the predictors in the regression model are some features of the house such as numbers of bathrooms, square footage of interior living space, the year of the house initially built, and so on. 
-(For more details, go check https://www.kaggle.com/harlfoxem/housesalesprediction)
+(For more details, go check on https://www.kaggle.com/harlfoxem/housesalesprediction)
 
 ```{r message=FALSE, warning=FALSE}
 library(tidyverse)
