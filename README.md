@@ -1,9 +1,10 @@
 # 16:954:597 Data Wrangling Final Project
-Author: Yuhsiang (Sean) Hong\
+**Author:** Yuhsiang (Sean) Hong
 
-## Introduction
-It has been roughly one year when the pandemic put the housing market on hold for several months last spring. But the real estate market bounced back quickly and has been booming since then. More existing homes were sold in 2020 than in any year since 2006. Therefore, the purpose of this project is to build a regression model to understand the relationship between the house price and some significant features of the house.\
+## Description
+The purpose of this project is to build a regression model to understand the relationship between the house price and some significant features of the house. Since this course is mainly about Data Wrangling, so in this project, I am focusing on Data Processing and Data Exploratory. However, there are still some model fitting at the end of the project so that we can have a deeper insight of the relationship between the house price and other features.
 
-I believe that the project could be very useful. For people who plan to buy a house, they can get the expected house price based on the features of the house. For real estate companies, they can determine what the house price is and raise their profits by understanding what kinds of features affect the house price.\
+## Dataset
 
-This course is mainly about Data Wrangling, so in this project, I will focus on Data Processing and Data Exploratory. In these parts, I am going implement some of the techniques and packages that has been utilized in the assignments and during the lectures. However, there will be model fitting at the end of the project so that we can have a deeper insight of the relationship between the house price and other features.
+The dataset is from Kaggle. The data contains the houses that were sold from May 2014 to May 2015. Total number of observations is over 20 thousand. There are total 21 different variables in the dataset. It includes house prices of King County in Washington state, which will be the dependent variable in the regression model. Other variables which will be the predictors in the regression model are some features of the house such as numbers of bathrooms, square footage of interior living space, the year of the house initially built, and so on. 
+(For more details, go check https://www.kaggle.com/harlfoxem/housesalesprediction)
