@@ -2,8 +2,8 @@
 title: "King County House Price"
 author: "Yuhsiang Hong"
 output:
-  github_document: default
   html_document: default
+  github_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -67,21 +67,21 @@ The r.squared right now is `r as.numeric(glance(raw_mod)$r.squared)`.
 
 Before fitting the final model, I need to do some data cleaning and organizing in order to make the model more meaningful and perform better.
 
-Since `id` is meaningless to house price, it will be removed. There are several variables that should be converted to categorical types:
+Since `id` is meaningless to house price, it will be removed. There are several variables that should be converted to the categorical or ordinal type:
 
-* `waterfront` is a boolean, indicating if the house has a view to a waterfront.
-* `view` indicates how good the view of the property is. As it only has 4 values, this feature can be factorized.  
-* `condition` is a score from 1 to 5, indicating the state of the house.  
-* `grade` is another score, with 11 levels (3 ~ 13).
-* `zipcode` is a cluster-like category of the house location.
+* `waterfront` (categorical) is a boolean variable, indicating if the house has a view to a waterfront.
+* `view` (ordinal) indicates how good the view of the property is. As it only has 4 values, this feature can be factorized.  
+* `condition` (ordinal) is a score from 1 to 5, indicating the state of the house.  
+* `grade` (ordinal) is another score, with 13 levels (1 ~ 13).
+* `zipcode` (categorical) is a cluster-like category of the house location.
 * Since I intend to make the model more general, I will create a new variable, `age`, representing how many years the house had been built until it was sold. It is computed by the year of `date` minus `yr_built`. Moreover, `date` will be removed since I am more interested in the age of the house instead of the date it was sold.
 
 ```{r}
-tidy_data <- kc_house %>% 
-  mutate(waterfront = as.factor(waterfront)) %>% 
-  mutate(view = as.factor(view)) %>% 
-  mutate(condition = as.factor(condition)) %>% 
-  mutate(grade = as.factor(grade)) %>%
+tidy_data <- kc_house %>% as_tibble() %>% 
+  mutate(waterfront = as_factor(waterfront)) %>% 
+  mutate(view = factor(view, levels = 0:4, ordered = T)) %>% 
+  mutate(condition = factor(condition, levels = 1:5, ordered = T)) %>% 
+  mutate(grade = factor(grade, levels = 1:13, ordered = T)) %>%
   mutate(age = as.numeric(format(date, format="%Y")) - yr_built) %>%
   mutate(zipcode = as.factor(zipcode)) %>% 
   select(-id, -date)
@@ -109,7 +109,7 @@ grid.arrange(p1, p2, nrow=2)
 
 These expensive houses cannot be removed from the dataset, as they are not anomalies but examples of the luxury market in the region. By transforming the data with a logarithm to base 10, it is easy to rebalance the dataset. This transformation could be used later to try to improve our models’ performance.
 
-**2. Categorical Features**
+**2. Categorical and Ordinal Features**
 
 ```{r message=FALSE, out.width=c('50%', '50%'), fig.show='hold'}
 cat_features <- names(tidy_data)[sapply(tidy_data, is.factor)]
@@ -304,14 +304,14 @@ Features that are removed from the backward stepwise model: `r diff`.
 
 Some observations from model selections:
 
-* After removing `r diff` from the model, both new stepwise models still maintain the same r squared as the final log model. 
-* Both model remove `r diff`, indicating that these features are less important than others.
+* After removing `r diff` from the model, both forward and backward stepwise models still maintain the same r squared as the final log model. 
+* Both models remove `r diff`, indicating that these features are possibly less important than others on the house price.
 
 ## Conclusion & Improvement
 
-1. The regression model improves a lot when some features are converted into categorical types.
+1. The regression model improves a lot when some features are converted into categorical or ordinal types.
 2. In real world data, some variables such as prices often needs to be scaled in order to fit the model better.
 3. By adding new variables, the model can be more meaningful even though the performance doesn’t show some significant improvement.
 4. Proper Data Wrangling techniques can definitely help the model to obtain greater results.
 5. Variables like `zipcode` could be implemented some clustering algorithms to obtain more meaningful information of their distributions and relationships with the house price.
-
+6. Since the project isn't required and focused on utilizing complex statistical analysis or models, I only implement the linear regression model. However, if we desire things like feature importance, more complicated models could be used such as random forest. Therefore, there is some room for improvement on statistical aspect.

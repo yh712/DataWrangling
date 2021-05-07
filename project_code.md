@@ -24,7 +24,7 @@ utilized in the assignments and during the lectures. However, there will
 be model fitting at the end of the project so that we can have a deeper
 insight of the relationship between the house price and other features.
 
-## Overview of the Dataset
+## Dataset
 
 The dataset I use is from Kaggle. The data contains the houses that were
 sold from May 2014 to May 2015. Total number of observations is over 20
@@ -34,7 +34,7 @@ the dependent variable in the regression model. Other variables which
 will be the predictors in the regression model are some features of the
 house such as numbers of bathrooms, square footage of interior living
 space, the year of the house initially built, and so on. (For more
-details, go check
+details, go check on
 <https://www.kaggle.com/harlfoxem/housesalesprediction>)
 
 ## Data Preparation
@@ -74,16 +74,18 @@ organizing in order to make the model more meaningful and perform
 better.
 
 Since `id` is meaningless to house price, it will be removed. There are
-several variables that should be converted to categorical types:
+several variables that should be converted to the categorical or ordinal
+type:
 
-  - `waterfront` is a boolean, indicating if the house has a view to a
-    waterfront.
-  - `view` indicates how good the view of the property is. As it only
-    has 4 values, this feature can be factorized.  
-  - `condition` is a score from 1 to 5, indicating the state of the
-    house.  
-  - `grade` is another score, with 11 levels (3 ~ 13).
-  - `zipcode` is a cluster-like category of the house location.
+  - `waterfront` (categorical) is a boolean variable, indicating if the
+    house has a view to a waterfront.
+  - `view` (ordinal) indicates how good the view of the property is. As
+    it only has 4 values, this feature can be factorized.  
+  - `condition` (ordinal) is a score from 1 to 5, indicating the state
+    of the house.  
+  - `grade` (ordinal) is another score, with 13 levels (1 ~ 13).
+  - `zipcode` (categorical) is a cluster-like category of the house
+    location.
   - Since I intend to make the model more general, I will create a new
     variable, `age`, representing how many years the house had been
     built until it was sold. It is computed by the year of `date` minus
@@ -94,13 +96,13 @@ several variables that should be converted to categorical types:
 
     ## # A tibble: 5 x 20
     ##    price bedrooms bathrooms sqft_living sqft_lot floors waterfront view 
-    ##    <dbl>    <dbl>     <dbl>       <dbl>    <dbl>  <dbl> <fct>      <fct>
+    ##    <dbl>    <dbl>     <dbl>       <dbl>    <dbl>  <dbl> <fct>      <ord>
     ## 1 221900        3      1           1180     5650      1 0          0    
     ## 2 538000        3      2.25        2570     7242      2 0          0    
     ## 3 180000        2      1            770    10000      1 0          0    
     ## 4 604000        4      3           1960     5000      1 0          0    
     ## 5 510000        3      2           1680     8080      1 0          0    
-    ## # … with 12 more variables: condition <fct>, grade <fct>, sqft_above <dbl>,
+    ## # … with 12 more variables: condition <ord>, grade <ord>, sqft_above <dbl>,
     ## #   sqft_basement <dbl>, yr_built <dbl>, yr_renovated <dbl>, zipcode <fct>,
     ## #   lat <dbl>, long <dbl>, sqft_living15 <dbl>, sqft_lot15 <dbl>, age <dbl>
 
@@ -121,7 +123,7 @@ transforming the data with a logarithm to base 10, it is easy to
 rebalance the dataset. This transformation could be used later to try to
 improve our models’ performance.
 
-**2. Categorical
+**2. Categorical and Ordinal
 Features**
 
 <img src="project_code_files/figure-gfm/unnamed-chunk-6-1.png" width="50%" /><img src="project_code_files/figure-gfm/unnamed-chunk-6-2.png" width="50%" /><img src="project_code_files/figure-gfm/unnamed-chunk-6-3.png" width="50%" /><img src="project_code_files/figure-gfm/unnamed-chunk-6-4.png" width="50%" />
@@ -266,16 +268,16 @@ sqft\_lot15.
 
 Some observations from model selections:
 
-  - After removing bedrooms, sqft\_lot15 from the model, both new
-    stepwise models still maintain the same r squared as the final log
-    model.
-  - Both model remove bedrooms, sqft\_lot15, indicating that these
-    features are less important than others.
+  - After removing bedrooms, sqft\_lot15 from the model, both forward
+    and backward stepwise models still maintain the same r squared as
+    the final log model.
+  - Both models remove bedrooms, sqft\_lot15, indicating that these
+    features are possibly less important than others on the house price.
 
 ## Conclusion & Improvement
 
 1.  The regression model improves a lot when some features are converted
-    into categorical types.
+    into categorical or ordinal types.
 2.  In real world data, some variables such as prices often needs to be
     scaled in order to fit the model better.
 3.  By adding new variables, the model can be more meaningful even
@@ -285,3 +287,9 @@ Some observations from model selections:
 5.  Variables like `zipcode` could be implemented some clustering
     algorithms to obtain more meaningful information of their
     distributions and relationships with the house price.
+6.  Since the project isn’t required and focused on utilizing complex
+    statistical analysis or models, I only implement the linear
+    regression model. However, if we desire things like feature
+    importance, more complicated models could be used such as random
+    forest. Therefore, there is some room for improvement on statistical
+    aspect.
